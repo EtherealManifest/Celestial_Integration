@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellarium State Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/get_state">Get State</a></li>
+        <li><a href="/set_state">Set State</a></li>
+        <li><a href="/sky_search">Sky Search</a></li>
+    </ul>
+</nav>
+<body>
+    <h1>Stellarium State Viewer</h1>
+
+<button id="getStateButton">Get Stellarium State</button>
+    <button id="updateStatusButton">Update Status</button>
+
+<div id="statusSection">
+    <h2>Status</h2>
+    <div id="statusOutput"></div>
+</div>
+
+<div id="viewSection">
+    <h2>View</h2>
+    <div id="viewOutput"></div>
+</div>
+    <script>
+        let lastActionId = -2;
+        let lastPropertyId = -2;
+    function formatJsonAsPrettyPrint(jsonData, indent = 0) {
+        let prettyPrintString = '';
+        let indentation = ' '.repeat(indent);
+
+        for (let key in jsonData) {
+            if (jsonData.hasOwnProperty(key)) {
+                prettyPrintString += `${indentation}<b>${key}</b>: `;
+                if (typeof jsonData[key] === 'object' && jsonData[key] !== null) {
+                    prettyPrintString += '<br>' + formatJsonAsPrettyPrint(jsonData[key], indent + 4);
+                } else {
+                    prettyPrintString += `${jsonData[key]}<br>`;
+                }
+            }
+        }
+        return prettyPrintString;
+    }
+
+document.getElementById('getStateButton').addEventListener('click', function() {
+    fetch('/get_stellarium_state', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('statusOutput').innerHTML = formatJsonAsPrettyPrint(data.status);
+            document.getElementById('viewOutput').innerHTML = formatJsonAsPrettyPrint(data.view);
+        })
+        .catch(error => console.error('Error:', error));
+
+});
+
+document.getElementById('updateStatusButton').addEventListener('click', function() {
+    console.log(`lastActionId: ${lastActionId}, lastPropertyId: ${lastPropertyId}`);
+fetch(`/update_stellarium_state?actionId=${lastActionId}&propId=${lastPropertyId}`, {
+        method: 'POST' })
+            .then(response => response.json())
+        .then(data => {
+            document.getElementById('statusOutput').innerHTML = formatJsonAsPrettyPrint(data.status);
+            document.getElementById('viewOutput').innerHTML = formatJsonAsPrettyPrint(data.view);
+        })
+        .catch(error => console.error('Error:', error));
+});
+
+
+function fetchAndUpdateStatus() {
+    fetch('/get_stellarium_state', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status.actionChanges && 'id' in data.status.actionChanges) {
+                lastActionId = data.status.actionChanges.id;
+            }
+            if (data.status.propertyChanges && 'id' in data.status.propertyChanges) {
+                lastPropertyId = data.status.propertyChanges.id;
+            }
+            // Update the UI with the new status data
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+    fetchAndUpdateStatus(); // This will fetch and set the initial IDs
+});
+
+</script>
+
+</body>
+</html>
