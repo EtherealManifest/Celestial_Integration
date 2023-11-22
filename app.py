@@ -1,7 +1,10 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, flash, url_for
 import requests
+from datetime import datetime
+from astropy.time import Time
 
 app = Flask(__name__)
+app.secret_key = 'Gaze_of_the_Skyborne_Warrior'
 
 @app.route('/')
 def index():
@@ -65,6 +68,112 @@ def update_stellarium_state():
 
     except requests.exceptions.RequestException as e:
         return {'error': str(e)}
+
+
+
+@app.route('/set_FOV', methods=['POST'])
+def set_fov():
+    new_fov = request.form.get('FOV')
+    data = {}
+    data['fov'] = new_fov
+    response = requests.post('http://localhost:8090/api/main/fov', data=data)
+    # Parse the success code
+    if response.status_code == 200:
+        if response.headers.get('Content-Type') == 'application/json':
+            try:
+                response_data = response.json()
+                # Process JSON data
+            except ValueError:
+                # JSON parsing failed, handle the exception
+                return {'status': 'error', 'message': 'Invalid JSON response'}
+        else:
+            # Response is not JSON, but the request was successful
+            flash(f'FOV set to {new_fov}', 'success')
+            return redirect(url_for('set'))
+        # Assume you have a variable `time` that holds the set time value
+
+    else:
+        # Handle unsuccessful responses
+        flash(('Error setting FOV, ' + str(response)), 'error')
+
+        return redirect(url_for('set'))
+
+    # Return an appropriate response
+    return response
+
+@app.route('/set_time_action', methods=['POST'])
+def set_time_action():
+    date = request.form.get('date')
+    time = request.form.get('time')
+    timeRate = request.form.get('timeRate')
+
+    # Combine date and time strings
+    datetime_str = f"{date} {time}"
+    # Convert to datetime object
+    datetime_obj = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+
+    #now that the imput time is in the correct format, put it in JD form.
+    data = {}
+    if time and date:
+        data['time'] = Time(datetime_obj).jd
+    if timeRate:
+        data['timerate'] = timeRate
+    if time or timeRate:
+        response = requests.post('http://localhost:8090/api/main/time', data=data)
+    else:
+        response = "Error, response not recognized by me, the interpreter. keep trying"
+
+    #Parse the success code
+    if response.status_code == 200:
+        if response.headers.get('Content-Type') == 'application/json':
+            try:
+                response_data = response.json()
+                # Process JSON data
+            except ValueError:
+                # JSON parsing failed, handle the exception
+                return {'status': 'error', 'message': 'Invalid JSON response'}
+        else:
+            # Response is not JSON, but the request was successful
+            flash(f'Time set to {datetime_str}', 'success')
+            return redirect(url_for('set'))
+        # Assume you have a variable `time` that holds the set time value
+
+    else:
+        # Handle unsuccessful responses
+        flash('Error setting time', 'error')
+        return redirect(url_for('set'))
+
+    # Return an appropriate response
+    return response
+
+@app.route('/set_state_action', methods=['POST'])
+def set_state_action():
+    time = request.form.get('time')
+    time_rate = request.form.get('timeRate')
+    focused_object = request.form.get('focusedObject')
+    view_direction = request.form.get('viewDirection')
+    field_of_view = request.form.get('fieldOfView')
+
+    # Logic to handle each field.
+    # If a field is blank (None or ''), keep the original data
+    data = {}
+    if time:
+        data['time'] = time
+    if time_rate:
+        data['timerate'] = time_rate
+        #once this data is constructed, pass the payload to set the time.
+    if(time or time_rate):
+        response = requests.post('http://localhost:8090/api/main/time', data=data)
+
+    data = {}
+    if focused_object:
+        data['target'] = focused_object
+        response = requests.post('http://localhost:8090/api/main/focus', data=data)
+
+    # Example:
+    # if time:
+    #     # Code to set time
+    return
 
 if __name__ == '__main__':
     app.run(debug=True)

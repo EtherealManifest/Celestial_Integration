@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <nav>
     <ul>
@@ -13,6 +14,12 @@
     </ul>
 </nav>
 <body>
+<h1>Welcome to The Stellarium Interface!</h1>
+<p>This is an app that acts as an interface to the Free app Stellarium. Above are links to the
+various functions of this application. With this app, you can read the state of the app(Get State),
+modify the current state of the app (Set State), or search the sky for a new object by name (Sky Search).
+If the various functions above are not working for you, make sure that Stellarium is open, and the
+remote control function is enabled in settings.</p>
 
 </body>
 </html>

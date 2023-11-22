@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <nav>
     <ul>
@@ -14,5 +15,42 @@
 </nav>
 <body>
 
+<!--input fields: time, focus, move, view, fov -->
+<h1>Set State</h1>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+<h3 class = "form-label">Time Modifications</h3>
+<hr>
+<p class = "form-instructions">Use these options to set the time, and time rate</p>
+
+    <form id="setTimeForm" action="/set_time_action" method="post">
+        <label for="dateInput">Date (MM/DD/YYYY):</label>
+        <input type="date" id="dateInput" name="date">
+
+        <label for="timeInput">Time (HH:MM):</label>
+        <input type="time" id="timeInput" name="time">
+
+        <label for="timeRate">Time Rate:</label>
+        <input type="text" id="timeRate" name="timeRate">
+
+        <button type="submit">Set State</button>
+    </form>
+<hr>
+<h3 class = "form-label">FOV Modifications</h3>
+<hr>
+<p class = "form-instructions"> Set the width of the viewport, in degrees</p>
+<form id = setFOV" action ="/set_FOV" method = "post">
+    <label for="FOV">FOV (Degrees)</label>
+    <input type="number" id="FOV" name="FOV" min = "1" max = "235" placeholder = "0.0001">
+
+    <button type = "submit">Set Field of View</button>
+</form>
 </body>
 </html>
