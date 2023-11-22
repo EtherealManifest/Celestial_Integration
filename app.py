@@ -73,7 +73,7 @@ def update_stellarium_state():
 
 @app.route('/set_FOV', methods=['POST'])
 def set_fov():
-    new_fov = request.form.get('FOV')
+    new_fov = request.form.get('FOV') or 65
     data = {}
     data['fov'] = new_fov
     response = requests.post('http://localhost:8090/api/main/fov', data=data)
@@ -88,7 +88,7 @@ def set_fov():
                 return {'status': 'error', 'message': 'Invalid JSON response'}
         else:
             # Response is not JSON, but the request was successful
-            flash(f'FOV set to {new_fov}', 'success')
+            flash(f'FOV set to {new_fov}\N{DEGREE SIGN}', 'success')
             return redirect(url_for('set'))
         # Assume you have a variable `time` that holds the set time value
 
@@ -100,13 +100,38 @@ def set_fov():
 
     # Return an appropriate response
     return response
+@app.route('/unfocus', methods=['POST'])
+def clear_selection():
+    response = requests.post('http://localhost:8090/api/main/focus')
+    if response.status_code == 200:
+        if response.headers.get('Content-Type') == 'application/json':
+            try:
+                response_data = response.json()
+                # Process JSON data
+            except ValueError:
+                # JSON parsing failed, handle the exception
+                return {'status': 'error', 'message': 'Invalid JSON response'}
+        else:
+            # Response is not JSON, but the request was successful
+            flash(f'Current Focus Cleared', 'success')
+            return redirect(url_for('set'))
+        # Assume you have a variable `time` that holds the set time value
+
+    else:
+        # Handle unsuccessful responses
+        flash('Error Unfocusing (Im Autistic)', 'error')
+        return redirect(url_for('set'))
+
+    # Return an appropriate response
+    return response
+
 
 @app.route('/set_time_action', methods=['POST'])
 def set_time_action():
-    date = request.form.get('date')
-    time = request.form.get('time')
-    timeRate = request.form.get('timeRate')
-
+    current_datetime = datetime.now()
+    date = request.form.get('date') or current_datetime.strftime('%Y-%m-%d')
+    time = request.form.get('time') or current_datetime.strftime('%H:%M')
+    timeRate = request.form.get('timeRate') or 1
     # Combine date and time strings
     datetime_str = f"{date} {time}"
     # Convert to datetime object
@@ -114,15 +139,9 @@ def set_time_action():
 
     #now that the imput time is in the correct format, put it in JD form.
     data = {}
-    if time and date:
-        data['time'] = Time(datetime_obj).jd
-    if timeRate:
-        data['timerate'] = timeRate
-    if time or timeRate:
-        response = requests.post('http://localhost:8090/api/main/time', data=data)
-    else:
-        response = "Error, response not recognized by me, the interpreter. keep trying"
-
+    data['time'] = Time(datetime_obj).jd
+    data['timerate'] = int(timeRate) / 86400
+    response = requests.post('http://localhost:8090/api/main/time', data=data)
     #Parse the success code
     if response.status_code == 200:
         if response.headers.get('Content-Type') == 'application/json':
@@ -134,7 +153,7 @@ def set_time_action():
                 return {'status': 'error', 'message': 'Invalid JSON response'}
         else:
             # Response is not JSON, but the request was successful
-            flash(f'Time set to {datetime_str}', 'success')
+            flash(f'Time set to {datetime_str}, Speed set to {timeRate}x', 'success')
             return redirect(url_for('set'))
         # Assume you have a variable `time` that holds the set time value
 

@@ -71,6 +71,16 @@ li{
     padding-right: 5px;
     padding-left: 5px;
 }
+
+.gallery{
+    width: 17.5%;
+    display: inline-block;
+    transition: .5s;
+}
+.gallery:hover{
+    width: 30%;
+    transition: .5s;
+}
 .alert-success {
     color: green;
     text-align:center;

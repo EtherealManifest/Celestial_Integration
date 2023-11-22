@@ -38,7 +38,7 @@
         <input type="time" id="timeInput" name="time">
 
         <label for="timeRate">Time Rate:</label>
-        <input type="text" id="timeRate" name="timeRate">
+        <input type="number" id="timeRate" name="timeRate" placeholder="Speed Multiplier">
 
         <button type="submit">Set State</button>
     </form>
@@ -48,9 +48,15 @@
 <p class = "form-instructions"> Set the width of the viewport, in degrees</p>
 <form id = setFOV" action ="/set_FOV" method = "post">
     <label for="FOV">FOV (Degrees)</label>
-    <input type="number" id="FOV" name="FOV" min = "1" max = "235" placeholder = "0.0001">
+    <input type="number" id="FOV" name="FOV" min = "1" max = "235" placeholder = "0.01", step = "0.01">
 
     <button type = "submit">Set Field of View</button>
+</form>
+<hr>
+<h3 class = "form-label">Toggle Focus</h3>
+<p class = "form-instructions">If the system is currently focused, Unfocus.</p>
+<form id="unfocus" action = "/unfocus" method="post">
+    <button type="submit">Unfocus Current Selection</button>
 </form>
 </body>
 </html>
