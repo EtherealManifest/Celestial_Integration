@@ -1,25 +1,37 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
-import requests
+import requests, json
 from datetime import datetime
 from astropy.time import Time
 
 app = Flask(__name__)
 app.secret_key = 'Gaze_of_the_Skyborne_Warrior'
 
+'''the route for the index page'''
 @app.route('/')
 def index():
     return render_template('index.html')
 
+'''the route for the set State page'''
 @app.route('/set_state')
 def set():
     return render_template('set_state.html')
 
+'''the route for the page that shows stellariums roperties, and writes to them'''
+@app.route('/stel_properties')
+def viewProps():
+    return render_template('stel_properties.html')
+
+'''The route to the page that allows the user to search the Stellarium database for a celestial object'''
 @app.route('/sky_search')
 def search():
     return render_template('sky_search.html')
+
+'''the route for the page that shows stellarium's current state'''
 @app.route('/get_state')
 def update():
     return render_template('get_state.html')
+
+'''this route renders the above page with data fields filled in, getting stellariums current state and displaying it'''
 @app.route('/get_stellarium_state', methods=['POST'])
 def get_stellarium_state():
     try:
@@ -42,8 +54,8 @@ def get_stellarium_state():
     except requests.exceptions.RequestException as e:
         return {'error': str(e)}
 
-
-
+'''similar to the above method/route, but this acounts for the updating of information, providing the user with a Delta 
+Time and changes in FOV'''
 @app.route('/update_stellarium_state', methods=['POST'])
 def update_stellarium_state():
     action_id = request.args.get('actionId')
@@ -69,8 +81,7 @@ def update_stellarium_state():
     except requests.exceptions.RequestException as e:
         return {'error': str(e)}
 
-
-
+'''the User can set the field of view in stellarium, though this does not do anything practical for the web user'''
 @app.route('/set_FOV', methods=['POST'])
 def set_fov():
     new_fov = request.form.get('FOV') or 65
@@ -100,6 +111,8 @@ def set_fov():
 
     # Return an appropriate response
     return response
+
+'''Un-focuses the current selection. if a selection is un-focused, no information about it will be displayed'''
 @app.route('/unfocus', methods=['POST'])
 def clear_selection():
     response = requests.post('http://localhost:8090/api/main/focus')
@@ -125,7 +138,8 @@ def clear_selection():
     # Return an appropriate response
     return response
 
-
+'''allows the user to set the time by providing a time and date. stellarium uses algorithms to generate the positions of
+ planets and other celestial objects, so the dates can be far in the past or future.'''
 @app.route('/set_time_action', methods=['POST'])
 def set_time_action():
     current_datetime = datetime.now()
@@ -137,12 +151,12 @@ def set_time_action():
     # Convert to datetime object
     datetime_obj = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
 
-    #now that the imput time is in the correct format, put it in JD form.
+    # now that the imput time is in the correct format, put it in JD form.
     data = {}
     data['time'] = Time(datetime_obj).jd
     data['timerate'] = int(timeRate) / 86400
     response = requests.post('http://localhost:8090/api/main/time', data=data)
-    #Parse the success code
+    # Parse the success code
     if response.status_code == 200:
         if response.headers.get('Content-Type') == 'application/json':
             try:
@@ -165,34 +179,66 @@ def set_time_action():
     # Return an appropriate response
     return response
 
-@app.route('/set_state_action', methods=['POST'])
-def set_state_action():
-    time = request.form.get('time')
-    time_rate = request.form.get('timeRate')
-    focused_object = request.form.get('focusedObject')
-    view_direction = request.form.get('viewDirection')
-    field_of_view = request.form.get('fieldOfView')
+'''lookup and object by name, and return a list of potential matches. these mathches are rendered as a list of links
+ that the user can select to show that object's current state'''
+@app.route('/lookup', methods=['POST'])
+def search_the_skies():
+    query = request.form.get('object_to_search') or 'none'
+    response = requests.get('http://localhost:8090/api/objects/find', params={'str': query})
+    if response.status_code == 200:
+        response_data = response.json()
+        # Render a template with response data
+        return render_template('results_page.html', response_data=response_data)
+    else:
+        flash(f'Error: Returned {response}', 'error')
 
-    # Logic to handle each field.
-    # If a field is blank (None or ''), keep the original data
-    data = {}
-    if time:
-        data['time'] = time
-    if time_rate:
-        data['timerate'] = time_rate
-        #once this data is constructed, pass the payload to set the time.
-    if(time or time_rate):
-        response = requests.post('http://localhost:8090/api/main/time', data=data)
+    # GET request or POST request with errors
+    return render_template('sky_search.html')
 
-    data = {}
-    if focused_object:
-        data['target'] = focused_object
-        response = requests.post('http://localhost:8090/api/main/focus', data=data)
+'''look at and modify some of stellarium's properties.'''
+@app.route('/view_stel_properties', methods=['GET'])
+def get_stel_properties():
+    response = requests.get('http://localhost:8090/api/stelproperty/list')
+    if response.status_code == 200:
+        response_data = response.json()
+        return render_template('stel_properties.html', response_data=response_data)
 
-    # Example:
-    # if time:
-    #     # Code to set time
-    return
+@app.route("/set_stel_property", methods = ["POST"])
+def set_Property():
+    property = request.form.get('property_name', 'none')
+    value = request.form.get('property_value', 'none')
+    #make sure that Stel knows that they are booleans, not strings
+    print(f'Property: {property}, Value: {value}')
+    data = {'property': property, 'value': value}
+    json_data = json.dumps(data)
+    response = requests.post("http://localhost:8090/api/stelproperty/set", data=json_data)
+    if response.status_code == 200:
+        #notify of success (always happens because I'm awesome :) )
+        flash(f'{property} has been set to {value}', 'success')
+    else:
+        flash(f'Error: {property} was not set successfully', 'error')
+
+    #fetch the current properties, to show them
+    response = requests.get('http://localhost:8090/api/stelproperty/list')
+    if response.status_code == 200:
+        response_data = response.json()
+
+    return render_template('stel_properties.html', response_data=response_data)
+
+@app.route('/info', methods=['POST', 'GET'])
+def get_info():
+    query = request.args.get('name', 'none')
+    response = requests.get('http://localhost:8090/api/objects/info', params={'name': query, 'format': 'json'})
+    if response.status_code == 200:
+        response_data = response.json()
+        # Render a template with response data
+        return render_template('search_index.html', name=query, response_data=response_data)
+    else:
+        flash(f'Error: Returned {response}', 'error')
+
+    # GET request or POST request with errors
+    return render_template('sky_search.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

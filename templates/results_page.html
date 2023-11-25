@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sky Search</title>
+    <title>Title</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <nav>
@@ -24,11 +24,21 @@
         {% endfor %}
     {% endif %}
 {% endwith %}
-<form id="skySearch" action="/lookup" method="POST">
-    <label for="object_to_search">Lookup Object: </label>
-    <input type="text" id="object_to_search" name="object_to_search" placeholder="e.g. Cassiopeia">
-    <button id="searchSubmit" type="submit">Search For Object</button>
-</form>
 
+    <h1>Search Results</h1>
+
+    {% if response_data %}
+        {% for obj in response_data %}
+                <ul>
+                     <li>
+                        <a href="{{ url_for('get_info', name=obj) }}">{{ obj }}</a>
+                        <!-- obj.key is used as a query parameter for the get_info route -->
+                    </li>
+                </ul>
+        {% endfor %}
+    {% else %}
+        <p>No data found</p>
+    {% endif %}
+<button><a id='back' href="/sky_search"><- Back to Search</a></button>
 </body>
 </html>

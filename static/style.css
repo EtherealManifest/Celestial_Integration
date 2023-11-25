@@ -25,6 +25,25 @@ button {
     transition: background-color 0.3s;
 }
 
+.property_display{
+    clear: both;
+}
+button.update_writable{
+    float:left;
+    width: 8%;
+    height: 20px;
+    font-size: 8px;
+    margin-top: 0;
+    padding: 1px;
+}
+
+input.update_writable{
+    float:left;
+}
+#back:visited{
+    color:white;
+}
+
 button:hover {
     background-color: #0056b3;
 }
@@ -71,6 +90,43 @@ li{
     padding-right: 5px;
     padding-left: 5px;
 }
+/* Style for the table */
+table {
+    width: 75%;
+    border-collapse: separate;
+    margin-bottom: 20px;
+    margin-left:15%;
+}
+
+/* Style for table headers */
+th {
+    background-color: #0056b3;
+    color: #f2f2f2;
+    padding: 10px;
+    text-align: left;
+    border-width: 2px;
+}
+
+/* Style for table cells */
+td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Zebra striping for rows */
+tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+/* Style for the strong tag (to make keys bold) */
+strong {
+    color: #333;
+    font-weight: bold;
+}
+
+.search_info{
+    display: grid;
+}
 
 .gallery{
     width: 17.5%;
@@ -110,4 +166,16 @@ nav{
     padding-bottom: 3px;
     outline: 1px solid cornflowerblue;
     background-color: #fff;
+}
+#skySearch>label{
+    margin-left: 10%;
+}
+#skySearch{
+    margin-top:10%;
+    width:100%;
+    border: 1px solid #007bff;
+}
+#searchSubmit{
+    margin-left: 10%;
+    width: 40%;
 }

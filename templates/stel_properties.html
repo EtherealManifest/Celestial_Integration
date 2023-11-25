@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/get_state">Get State</a></li>
+        <li><a href="/set_state">Set State</a></li>
+        <li><a href="/sky_search">Sky Search</a></li>
+        <li><a href="/stel_properties">View Properties</a></li>
+    </ul>
+</nav>
+<body>
+<h1>Welcome to The Stellarium Interface!</h1>
+{% if response_data %}
+    {% for key, value in response_data.items() %}
+        <p class = "property_display"> <strong>{{ key }} : </strong>
+            {% if value['isWritable'] %}
+                {{value}}
+                    <form action = "/set_stel_property" method = "post">
+                        <label for="property"></label>
+                        <input type="hidden" name = "property_name" value = "{{ key }}">
+                        <input type="text" class = "update_writable" id="property" name="property_value" placeholder="...">
+                        <button class = "update_writable" type="submit">Update Value</button>
+                    </form>
+        </p>
+
+            {% endif %}
+    {% endfor %}
+{% else %}
+    <p>No data found</p>
+{% endif %}
+<button><a href = "{{url_for('get_stel_properties')}}"> Show Properties</a></button>
+
+
+</body>
+</html>

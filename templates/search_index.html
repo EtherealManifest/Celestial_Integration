@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/get_state">Get State</a></li>
+        <li><a href="/set_state">Set State</a></li>
+        <li><a href="/sky_search">Sky Search</a></li>
+        <li><a href="/stel_properties">View Properties</a></li>
+    </ul>
+</nav>
+<body>
+{% if name%}
+    <h1>Returned info for {{ name }}:</h1>
+     {% if response_data %}
+        <table id="results ">
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+            </tr>
+            {% for key, value in response_data.items() %}
+                <tr>
+                    <td><strong>{{ key }}</strong></td>
+                    <td>{{ value }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No data found</p>
+    {% endif %}
+{% endif %}
+
+</body>
+</html>
