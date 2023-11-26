@@ -25,7 +25,7 @@
     {% endif %}
 {% endwith %}
 <form id="skySearch" action="/lookup" method="POST">
-    <label for="object_to_search">Lookup Object: </label>
+    <label for="object_to_search" id="skySearchLabel">Lookup Object: </label>
     <input type="text" id="object_to_search" name="object_to_search" placeholder="e.g. Cassiopeia">
     <button id="searchSubmit" type="submit">Search For Object</button>
 </form>

@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
@@ -24,7 +26,7 @@ def local_sidereal_time(longitude, utc_time):
 
     return lst
 
-def plot_planet(ra, dec, lat, lon, utc_time):
+def plot_planet(ra, dec, lat, lon, utc_time, name):
     """Plot the position of a planet on a sphere using right ascension and declination,
     with markers indicating both celestial and geographic North."""
     fig = plt.figure()
@@ -37,27 +39,43 @@ def plot_planet(ra, dec, lat, lon, utc_time):
     z = np.cos(v)
     ax.plot_wireframe(x, y, z, color="b", alpha=0.1)
 
+    #horizon position
+    horizon_u = np.linspace(0, 2 * np.pi, 100)
+    horizon_v = np.pi / 2  # Horizon at declination 0 (equator)
+    horizon_x = np.cos(horizon_u)
+    horizon_y = np.sin(horizon_u)
+    horizon_z = np.zeros_like(horizon_x)
+    ax.plot(horizon_x, horizon_y, horizon_z, color="black", linewidth=2)
+
     # Planet position
     x_p, y_p, z_p = sph2cart(ra, dec)
-    ax.scatter(x_p, y_p, z_p, color="r", s=100)  # s is the size of the point
+    ax.scatter(x_p, y_p, z_p, color="r", s=100, label = "Planet Position")  # s is the size of the point
 
     # Celestial North (declination = 90 degrees)
     x_n, y_n, z_n = sph2cart(0, 90)
-    ax.scatter(x_n, y_n, z_n, color="g", s=100, marker='^')  # Green triangle marker for celestial North
+    ax.scatter(x_n, y_n, z_n, color="g", s=100, marker='$CN$', label = "Celestial North")  # Green triangle marker for celestial North
 
-    # Geographic North
+    # Geographic North on the Horizon
     lst = local_sidereal_time(lon, utc_time)
-    geo_north_dec = 90 - lat  # Declination for geographic North
-    x_gn, y_gn, z_gn = sph2cart(lst * 15, geo_north_dec)  # Convert LST from hours to degrees
-    ax.scatter(x_gn, y_gn, z_gn, color="m", s=100, marker='s')  # Magenta square marker for geographic North
+    north_ra = lst * 15  # Convert LST from hours to degrees
+    north_dec = 0  # On the horizon
+    x_gn, y_gn, z_gn = sph2cart(north_ra, north_dec)
+    ax.scatter(x_gn, y_gn, z_gn, color="k", s=100, marker='$N$', label = "Geographic North")  # Magenta square marker for geographic North
 
-    # Labels and title
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    ax.set_title('Planet Position with North Markers')
+    # Viewer's position at the center
+    ax.scatter(0, 0, 0, color="c", s=100, marker='$(o)$', label='Viewer')  # Viewer's position with label
 
-    plt.show()
+    # Remove external axis marks
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.set_title(f'{name} -- Relative Position')
+
+    # Create the legend
+    ax.legend(loc='upper right')
+
+    #May also need to return ax, standby
+    return fig
 
 def sph2cart(ra, dec):
     """Convert spherical coordinates (right ascension and declination) to Cartesian."""
@@ -71,13 +89,4 @@ def sph2cart(ra, dec):
     z = np.sin(dec_rad)
 
     return x, y, z
-
-# Example values for RA, Dec, latitude, longitude, and UTC time
-ra_example = 45
-dec_example = 30
-lat_example = 51.5  # Latitude for London, UK
-lon_example = -0.12  # Longitude for London, UK
-utc_time_example = datetime(2023, 11, 23, 12, 0, 0, tzinfo=pytz.utc)
-# Plotting the planet with both celestial and geographic North
-plot_planet(ra_example, dec_example, lat_example, lon_example, utc_time_example)
 

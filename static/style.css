@@ -170,12 +170,24 @@ nav{
 #skySearch>label{
     margin-left: 10%;
 }
+#object_to_search{
+    width:auto;
+    padding: 0;
+    margin: 0;
+}
 #skySearch{
     margin-top:10%;
-    width:100%;
-    border: 1px solid #007bff;
+    margin-left: 25%;
+    width: 50%;
+    border: 3px grey;
+    border-style: outset;
+    padding: 0;
+}
+#skySearchLabel{
+    margin-left: 200%;
 }
 #searchSubmit{
-    margin-left: 10%;
-    width: 40%;
+    margin: 10px 0 5px 30%;
+    width: auto;
+    padding: 10px;
 }

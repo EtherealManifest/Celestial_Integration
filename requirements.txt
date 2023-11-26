@@ -1,2 +1,6 @@
-Flask
-requests
+requests~=2.31.0
+flask~=3.0.0
+astropy~=5.3.4
+matplotlib~=3.8.2
+numpy~=1.26.0
+pytz~=2023.3.post1

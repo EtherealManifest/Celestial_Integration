@@ -18,6 +18,9 @@
 {% if name%}
     <h1>Returned info for {{ name }}:</h1>
      {% if response_data %}
+        {% if plot_url %}
+            <img class = "map" src="data:image/png;base64,{{ plot_url }}" alt="planet Position">
+        {%endif%}
         <table id="results ">
             <tr>
                 <th>Key</th>

@@ -2,6 +2,15 @@ from flask import Flask, render_template, request, redirect, flash, url_for
 import requests, json
 from datetime import datetime
 from astropy.time import Time
+import Planet_Position_Graph as Plot
+#this is used to send the local map to the HTML template in  '/info'
+import base64
+from io import BytesIO
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 app.secret_key = 'Gaze_of_the_Skyborne_Warrior'
@@ -11,25 +20,30 @@ app.secret_key = 'Gaze_of_the_Skyborne_Warrior'
 def index():
     return render_template('index.html')
 
+
 '''the route for the set State page'''
 @app.route('/set_state')
 def set():
     return render_template('set_state.html')
+
 
 '''the route for the page that shows stellariums roperties, and writes to them'''
 @app.route('/stel_properties')
 def viewProps():
     return render_template('stel_properties.html')
 
+
 '''The route to the page that allows the user to search the Stellarium database for a celestial object'''
 @app.route('/sky_search')
 def search():
     return render_template('sky_search.html')
 
+
 '''the route for the page that shows stellarium's current state'''
 @app.route('/get_state')
 def update():
     return render_template('get_state.html')
+
 
 '''this route renders the above page with data fields filled in, getting stellariums current state and displaying it'''
 @app.route('/get_stellarium_state', methods=['POST'])
@@ -53,6 +67,7 @@ def get_stellarium_state():
 
     except requests.exceptions.RequestException as e:
         return {'error': str(e)}
+
 
 '''similar to the above method/route, but this acounts for the updating of information, providing the user with a Delta 
 Time and changes in FOV'''
@@ -80,6 +95,7 @@ def update_stellarium_state():
 
     except requests.exceptions.RequestException as e:
         return {'error': str(e)}
+
 
 '''the User can set the field of view in stellarium, though this does not do anything practical for the web user'''
 @app.route('/set_FOV', methods=['POST'])
@@ -112,6 +128,7 @@ def set_fov():
     # Return an appropriate response
     return response
 
+
 '''Un-focuses the current selection. if a selection is un-focused, no information about it will be displayed'''
 @app.route('/unfocus', methods=['POST'])
 def clear_selection():
@@ -137,6 +154,7 @@ def clear_selection():
 
     # Return an appropriate response
     return response
+
 
 '''allows the user to set the time by providing a time and date. stellarium uses algorithms to generate the positions of
  planets and other celestial objects, so the dates can be far in the past or future.'''
@@ -179,6 +197,7 @@ def set_time_action():
     # Return an appropriate response
     return response
 
+
 '''lookup and object by name, and return a list of potential matches. these mathches are rendered as a list of links
  that the user can select to show that object's current state'''
 @app.route('/lookup', methods=['POST'])
@@ -195,7 +214,8 @@ def search_the_skies():
     # GET request or POST request with errors
     return render_template('sky_search.html')
 
-'''look at and modify some of stellarium's properties.'''
+
+'''look at all of stellarium's properties.'''
 @app.route('/view_stel_properties', methods=['GET'])
 def get_stel_properties():
     response = requests.get('http://localhost:8090/api/stelproperty/list')
@@ -203,27 +223,30 @@ def get_stel_properties():
         response_data = response.json()
         return render_template('stel_properties.html', response_data=response_data)
 
-@app.route("/set_stel_property", methods = ["POST"])
+
+'''modify stellariums properties'''
+@app.route("/set_stel_property", methods=["POST"])
 def set_Property():
     property = request.form.get('property_name', 'none')
     value = request.form.get('property_value', 'none')
-    #make sure that Stel knows that they are booleans, not strings
+    # make sure that Stel knows that they are booleans, not strings
     print(f'Property: {property}, Value: {value}')
     data = {'property': property, 'value': value}
     json_data = json.dumps(data)
     response = requests.post("http://localhost:8090/api/stelproperty/set", data=json_data)
     if response.status_code == 200:
-        #notify of success (always happens because I'm awesome :) )
+        # notify of success (always happens because I'm awesome :) )
         flash(f'{property} has been set to {value}', 'success')
     else:
         flash(f'Error: {property} was not set successfully', 'error')
 
-    #fetch the current properties, to show them
+    # fetch the current properties, to show them
     response = requests.get('http://localhost:8090/api/stelproperty/list')
     if response.status_code == 200:
         response_data = response.json()
 
     return render_template('stel_properties.html', response_data=response_data)
+
 
 @app.route('/info', methods=['POST', 'GET'])
 def get_info():
@@ -231,8 +254,32 @@ def get_info():
     response = requests.get('http://localhost:8090/api/objects/info', params={'name': query, 'format': 'json'})
     if response.status_code == 200:
         response_data = response.json()
+        #add the sky map here.
+        #Attributes Needed: ra, dec, lat, lon, utc_time
+        #get ra, dec from response
+        r_asc = response_data['ra']
+        dec = response_data['dec']
+        #get lat, lon, and utc_time from get_stel_state( just the get request)
+        stel_status_response = requests.get('http://localhost:8090/api/main/status?actionId=-2&propId=-2')
+        stel_status_data = stel_status_response.json() if stel_status_response.status_code == 200 else None
+        utc = stel_status_data['time']['utc']
+        # Remove milliseconds and 'Z' for UTC
+        cleaned_string = utc.split('.')[0]
+        # Convert it to a datetime object
+        utc = datetime.fromisoformat(cleaned_string)
+        lon = stel_status_data['location']['longitude']
+        lat = stel_status_data['location']['latitude']
+        fig = Plot.plot_planet(r_asc, dec, lat, lon, utc, query)
+        img = BytesIO()
+        fig.savefig(img, format='png', bbox_inches='tight')
+        img.seek(0)
+        plot_url = base64.b64encode(img.getvalue()).decode('utf-8')
+
+
+
         # Render a template with response data
-        return render_template('search_index.html', name=query, response_data=response_data)
+        return render_template('search_index.html', name=query, response_data=response_data,
+                               plot_url=plot_url)
     else:
         flash(f'Error: Returned {response}', 'error')
 
@@ -242,3 +289,70 @@ def get_info():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+def local_sidereal_time(longitude, utc_time):
+    """Calculate the Local Sidereal Time for a given longitude and UTC time."""
+    # Convert UTC time to Julian Date
+    jd = utc_time.toordinal() + 1721424.5 + utc_time.hour / 24.0 + utc_time.minute / 1440.0 + utc_time.second / 86400.0
+
+    # Calculate the number of days since J2000.0
+    jd2000 = jd - 2451545.0
+
+    # Mean sidereal time in degrees
+    mean_sidereal_time = 280.46061837 + 360.98564736629 * jd2000 + longitude
+
+    # Normalize to 0-360 degrees
+    mean_sidereal_time = mean_sidereal_time % 360
+
+    # Convert to hours
+    lst = mean_sidereal_time / 15.0
+
+    return lst
+
+def plot_planet(ra, dec, lat, lon, utc_time):
+    """Plot the position of a planet on a sphere using right ascension and declination,
+    with markers indicating both celestial and geographic North."""
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Sphere
+    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+    x = np.cos(u) * np.sin(v)
+    y = np.sin(u) * np.sin(v)
+    z = np.cos(v)
+    ax.plot_wireframe(x, y, z, color="b", alpha=0.1)
+
+    # Planet position
+    x_p, y_p, z_p = sph2cart(ra, dec)
+    ax.scatter(x_p, y_p, z_p, color="r", s=100)  # s is the size of the point
+
+    # Celestial North (declination = 90 degrees)
+    x_n, y_n, z_n = sph2cart(0, 90)
+    ax.scatter(x_n, y_n, z_n, color="g", s=100, marker='^')  # Green triangle marker for celestial North
+
+    # Geographic North
+    lst = local_sidereal_time(lon, utc_time)
+    geo_north_dec = 90 - lat  # Declination for geographic North
+    x_gn, y_gn, z_gn = sph2cart(lst * 15, geo_north_dec)  # Convert LST from hours to degrees
+    ax.scatter(x_gn, y_gn, z_gn, color="k", s=100, marker='$N$')  # Magenta 'N' marker for geographic North
+
+    # Labels and title
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title('Planet Position with North Markers')
+    #May also need to return ax, standby
+    return fig
+
+def sph2cart(ra, dec):
+    """Convert spherical coordinates (right ascension and declination) to Cartesian."""
+    # Convert angles to radians
+    ra_rad = np.deg2rad(ra)
+    dec_rad = np.deg2rad(dec)
+
+    # Spherical to Cartesian conversion
+    x = np.cos(dec_rad) * np.cos(ra_rad)
+    y = np.cos(dec_rad) * np.sin(ra_rad)
+    z = np.sin(dec_rad)
+
+    return x, y, z
