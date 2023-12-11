@@ -14,9 +14,17 @@
         <li><a href="/get_state">Get State</a></li>
         <li><a href="/set_state">Set State</a></li>
         <li><a href="/sky_search">Sky Search</a></li>
-        <li><a href="/stel_properties">View Properties</a></li>
     </ul>
 </nav>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 <body>
     <h1>Stellarium State Viewer</h1>
 

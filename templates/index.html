@@ -11,9 +11,17 @@
         <li><a href="/get_state">Get State</a></li>
         <li><a href="/set_state">Set State</a></li>
         <li><a href="/sky_search">Sky Search</a></li>
-        <li><a href="/stel_properties">View Properties</a></li>
     </ul>
 </nav>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 <body>
 <h1>Welcome to The Stellarium Interface!</h1>
 <p>This is an app that acts as an interface to the Free app Stellarium. Above are links to the

@@ -1,23 +1,27 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
-import requests, json
-from datetime import datetime
+import requests, json, base64
 from astropy.time import Time
 import Planet_Position_Graph as Plot
-#this is used to send the local map to the HTML template in  '/info'
-import base64
 from io import BytesIO
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 from datetime import datetime
-import pytz
+
 
 app = Flask(__name__)
 app.secret_key = 'Gaze_of_the_Skyborne_Warrior'
 
+def check_connect():
+    try:
+        stel_status_response = requests.get('http://localhost:8090/api/')
+    except requests.exceptions.ConnectionError:
+        stel_status_response = "0"
+        print(stel_status_response)
+
 '''the route for the index page'''
 @app.route('/')
 def index():
+    check_connect()
     return render_template('index.html')
 
 
@@ -155,6 +159,22 @@ def clear_selection():
     # Return an appropriate response
     return response
 
+@app.route('/focus', methods=['POST','GET'])
+def set_selection():
+    query = request.args.get('name', 'none')
+    data = {'target': query}
+    response = requests.post('http://localhost:8090/api/main/focus', data=data)
+    if response.status_code == 200:
+        flash(f'Stellarium is now focusing {query}', 'success')
+        return render_template('sky_search.html', name = query)
+
+    else:
+        # Handle unsuccessful responses
+        flash('Error Unfocusing', 'error')
+        return redirect(url_for('set'))
+
+    # Return an appropriate response
+    return response
 
 '''allows the user to set the time by providing a time and date. stellarium uses algorithms to generate the positions of
  planets and other celestial objects, so the dates can be far in the past or future.'''
@@ -247,6 +267,13 @@ def set_Property():
 
     return render_template('stel_properties.html', response_data=response_data)
 
+@app.route('/focus_properties', methods = ['POST', 'GET'])
+def get_focused_info():
+    query = request.args.get('target', '')
+    status_response = requests.get('http://localhost:8090/api/main/status?actionId=-2&propId=-2')
+    focused_data = status_response.json() if status_response.status_code == 200 else None
+    print(focused_data['selectioninfo'])
+    return render_template('focused_properties.html', response_data=focused_data['selectioninfo'])
 
 @app.route('/info', methods=['POST', 'GET'])
 def get_info():
@@ -255,10 +282,10 @@ def get_info():
     if response.status_code == 200:
         response_data = response.json()
         #add the sky map here.
-        #Attributes Needed: ra, dec, lat, lon, utc_time
-        #get ra, dec from response
-        r_asc = response_data['ra']
-        dec = response_data['dec']
+        #Attributes Needed: azi, alt, lat, lon, utc_time
+        #get azi, alt from response
+        alt = response_data['altitude']
+        azi = response_data['azimuth']
         #get lat, lon, and utc_time from get_stel_state( just the get request)
         stel_status_response = requests.get('http://localhost:8090/api/main/status?actionId=-2&propId=-2')
         stel_status_data = stel_status_response.json() if stel_status_response.status_code == 200 else None
@@ -269,7 +296,7 @@ def get_info():
         utc = datetime.fromisoformat(cleaned_string)
         lon = stel_status_data['location']['longitude']
         lat = stel_status_data['location']['latitude']
-        fig = Plot.plot_planet(r_asc, dec, lat, lon, utc, query)
+        fig = Plot.plot_planet(azi, alt, lon, lat, utc, query)
         img = BytesIO()
         fig.savefig(img, format='png', bbox_inches='tight')
         img.seek(0)
@@ -355,4 +382,4 @@ def sph2cart(ra, dec):
     y = np.cos(dec_rad) * np.sin(ra_rad)
     z = np.sin(dec_rad)
 
-    return x, y, z
+

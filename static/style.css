@@ -191,3 +191,8 @@ nav{
     width: auto;
     padding: 10px;
 }
+
+.map{
+    width: 45%;
+    margin-left:27.5%;
+}

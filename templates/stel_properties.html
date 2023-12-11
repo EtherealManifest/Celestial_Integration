@@ -14,6 +14,15 @@
         <li><a href="/stel_properties">View Properties</a></li>
     </ul>
 </nav>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 <body>
 <h1>Welcome to The Stellarium Interface!</h1>
 {% if response_data %}
@@ -34,7 +43,7 @@
 {% else %}
     <p>No data found</p>
 {% endif %}
-<button><a href = "{{url_for('get_stel_properties')}}"> Show Properties</a></button>
+<a href = "{{url_for('get_stel_properties')}}"><button> Show Properties</button></a>
 
 
 </body>
