@@ -11,17 +11,11 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = 'Gaze_of_the_Skyborne_Warrior'
 
-def check_connect():
-    try:
-        stel_status_response = requests.get('http://localhost:8090/api/')
-    except requests.exceptions.ConnectionError:
-        stel_status_response = "0"
-        print(stel_status_response)
+
 
 '''the route for the index page'''
 @app.route('/')
 def index():
-    check_connect()
     return render_template('index.html')
 
 
@@ -121,7 +115,6 @@ def set_fov():
             # Response is not JSON, but the request was successful
             flash(f'FOV set to {new_fov}\N{DEGREE SIGN}', 'success')
             return redirect(url_for('set'))
-        # Assume you have a variable `time` that holds the set time value
 
     else:
         # Handle unsuccessful responses
@@ -173,16 +166,16 @@ def set_selection():
         flash('Error Unfocusing', 'error')
         return redirect(url_for('set'))
 
-    # Return an appropriate response
-    return response
-
 '''allows the user to set the time by providing a time and date. stellarium uses algorithms to generate the positions of
  planets and other celestial objects, so the dates can be far in the past or future.'''
 @app.route('/set_time_action', methods=['POST'])
 def set_time_action():
+    #get the current date-time
     current_datetime = datetime.now()
+    #if the user supplies the date and time, great! if not, use the recently acquired data
     date = request.form.get('date') or current_datetime.strftime('%Y-%m-%d')
     time = request.form.get('time') or current_datetime.strftime('%H:%M')
+    #default to a 1:1 time rate
     timeRate = request.form.get('timeRate') or 1
     # Combine date and time strings
     datetime_str = f"{date} {time}"
@@ -222,6 +215,8 @@ def set_time_action():
  that the user can select to show that object's current state'''
 @app.route('/lookup', methods=['POST'])
 def search_the_skies():
+    #interesting interaction where if the user does not enter anything, the system actually
+    #searches the string none. and actually returns a result!
     query = request.form.get('object_to_search') or 'none'
     response = requests.get('http://localhost:8090/api/objects/find', params={'str': query})
     if response.status_code == 200:
@@ -296,20 +291,18 @@ def get_info():
         utc = datetime.fromisoformat(cleaned_string)
         lon = stel_status_data['location']['longitude']
         lat = stel_status_data['location']['latitude']
+        #make a call to the adjacent file to actually form the plot, then grab it and show it.
         fig = Plot.plot_planet(azi, alt, lon, lat, utc, query)
         img = BytesIO()
         fig.savefig(img, format='png', bbox_inches='tight')
         img.seek(0)
         plot_url = base64.b64encode(img.getvalue()).decode('utf-8')
-
-
-
         # Render a template with response data
+        #this includes the plot, which is basically a PNG with more steps.
         return render_template('search_index.html', name=query, response_data=response_data,
                                plot_url=plot_url)
     else:
         flash(f'Error: Returned {response}', 'error')
-
     # GET request or POST request with errors
     return render_template('sky_search.html')
 
