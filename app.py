@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
 import requests, json, base64
 from astropy.time import Time
-import Planet_Position_Graph as Plot
 from io import BytesIO
 import matplotlib.pyplot as plt
 import numpy as np
